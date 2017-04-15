@@ -1,3 +1,4 @@
+## Пример для [Бориса](https://OriginalSin.github.io/MarchingSquaresJS/boris2.html) с другой алгоритм
 ## Пример для [Бориса](https://OriginalSin.github.io/MarchingSquaresJS/boris.html) с изображением
 
 
