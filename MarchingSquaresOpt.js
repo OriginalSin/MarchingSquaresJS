@@ -11,7 +11,7 @@
 
     const MarchingSquaresOpt = {};
 
-    MarchingSquaresOpt.getBlobOutlinePoints = function(source_array, width, height=0){
+    MarchingSquaresOpt.getBlobOutlinePoints = function(source_array, width, height){
         // Note: object should not be on the border of the array, since there is
         //       no padding of 1 pixel to handle points which touch edges
 

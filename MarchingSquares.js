@@ -20,7 +20,7 @@
     // define the perimeter of the upper-left most
     // object in that texture, using pixel alpha>0 to define
     // the boundary.
-    MarchingSquares.getBlobOutlinePoints = function(sourceCanvas){
+    MarchingSquares.getBlobOutlinePoints = function(sourceCanvas, startingPoint){
 
         //Add a padding of 1 pixel to handle points which touch edges
         MarchingSquares.sourceCanvas = document.createElement("canvas");
@@ -30,7 +30,7 @@
         MarchingSquares.sourceContext.drawImage(sourceCanvas,1,1);
 
         // Find the starting point
-        var startingPoint = MarchingSquares.getFirstNonTransparentPixelTopDown(MarchingSquares.sourceCanvas);
+        // var startingPoint = MarchingSquares.getFirstNonTransparentPixelTopDown(MarchingSquares.sourceCanvas);
 
         // Return list of x and y positions
         return MarchingSquares.walkPerimeter(startingPoint.x, startingPoint.y);

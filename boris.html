@@ -43,8 +43,19 @@
         canvas.height = 300;
 
         var img1 = document.getElementById("img1");
-		context.drawImage(img1, 220, 490, 300, 300, 0, 0, 300, 300);
-		
+		// context.drawImage(img1, 414, 574, 72, 32, 0, 0, 300, 300);
+		// context.drawImage(img1, 414, 574, canvas.width, canvas.height, 0, 0, canvas.width, canvas.height);
+		context.drawImage(img1, 220, 520, 300, 300, 0, 0, 300, 300);
+        var imgData = context.getImageData(0, 0, canvas.width, canvas.height);
+        for (var y = 0; y < imgData.height; y++) {
+            for (var x = 0; x < imgData.width; x++) {
+                var i = ((y * 4) * imgData.width) + (x * 4);
+                var r = imgData.data[i];
+                imgData.data[i + 3] = r > 200 ? 0 : 255;
+            }
+        }
+        context.putImageData(imgData, 0, 0);
+
 		canvasContainer.onclick = function(ev) {
 			document.getElementById("px").value = ev.clientX;
 			document.getElementById("py").value = ev.clientY;
@@ -93,7 +104,7 @@
 
     function runMarchingSquares(){
         var start = new Date();
-        outlinePoints = MarchingSquares.getBlobOutlinePoints(canvas);  // returns [x1,y1,x2,y2,x3,y3... etc.]
+        outlinePoints = MarchingSquares.getBlobOutlinePoints(canvas, getFirstPoint());  // returns [x1,y1,x2,y2,x3,y3... etc.]
         var result = document.getElementById("result");
         result.innerHTML = "March (new) took : "+ (new Date() - start);
         renderOutline();
@@ -109,7 +120,7 @@
         for (let i = 0; i < len; ++i){
             data[i] = data4[i << 2];
         }
-        outlinePoints = MarchingSquaresOpt.getBlobOutlinePoints(data, width, height);  // returns [x1,y1,x2,y2,x3,y3... etc.]
+        outlinePoints = MarchingSquaresOpt.getBlobOutlinePoints(data, width, height, getFirstPoint());  // returns [x1,y1,x2,y2,x3,y3... etc.]
         var result = document.getElementById("result");
         result.innerHTML = "March (new opt) took : "+ (new Date() - start);
         renderOutline();
@@ -168,6 +179,7 @@
         for(var i=0; i<outlinePoints.length; i+=2){
             context.fillRect(outlinePoints[i], outlinePoints[i+1], 1, 1);
         }
+		console.log('result', outlinePoints)
     }
 
     </script>
