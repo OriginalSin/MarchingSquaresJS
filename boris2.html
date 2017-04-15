@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Marching Squares Test</title>
+
+    <style type="text/css">
+
+        html, body{
+            margin : 0px;
+            width : 100%;
+            height : 100%;
+            overflow: hidden;
+        }
+
+        #canvasContainer{
+            margin : 0px;
+            width : 100%;
+            height : 100%;
+        }
+
+        #img1 {
+			display: none;
+        }
+
+        #controlsDiv {
+            font-family: sans-serif;
+            padding: 5px;
+            text-align: center;
+        }
+
+    </style>
+
+</head>
+    <body>
+        <div id="controlsDiv">
+            <span>
+                <button type="button" onclick="runMe()">Start</button>
+            </span>
+        </div>
+	
+        <img id="img1" src="00292.jpg"></img>
+        <div id="canvasContainer"></div>
+
+    <script type="text/javascript">
+        var canvas = document.createElement('canvas');
+        // canvas.style.position = "absolute";
+        var ctx = canvas.getContext("2d");
+        var canvasContainer = document.getElementById("canvasContainer"),
+			sCanvas = document.createElement("canvas"),
+			rCanvas = document.createElement("canvas");
+        canvasContainer.appendChild(canvas);
+        canvasContainer.appendChild(rCanvas);
+
+        canvas.width = 300;
+        canvas.height = 300;
+
+		var cx          = 0,
+			cy          = 0,
+			cw          = canvas.width,
+			ch          = canvas.height,
+			bu, paths   = [], path,
+			lastPos = 3, i, pt, // for recursive calls
+			// bleed       = Math.max(1, options.bleed || 5),
+			max         = 256,
+			alpha       = 0,
+			padding 	= 0,
+			tolerance   = 0,
+			doAlign     = true,
+			alignWeight = 0.95,
+			retPath     = true,
+			ctx2, inc;
+
+		var imgData,
+			lastPos = 3,
+			img1 = document.getElementById("img1");
+		img1.onload = function() {
+			// context.drawImage(img1, 414, 574, 72, 32, 0, 0, 300, 300);
+			// context.drawImage(img1, 414, 574, canvas.width, canvas.height, 0, 0, canvas.width, canvas.height);
+			ctx.drawImage(img1, 220, 520, 300, 300, 0, 0, 300, 300);
+			imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+			for (var y = 0; y < imgData.height; y++) {
+				for (var x = 0; x < imgData.width; x++) {
+					var i = ((y * 4) * imgData.width) + (x * 4);
+					var r = imgData.data[i];
+					imgData.data[i + 3] = r > 200 ? 0 : 255;
+				}
+			}
+			ctx.putImageData(imgData, 0, 0);
+			
+			rCanvas.width = imgData.width;
+			rCanvas.height = imgData.height;
+			sCanvas.width = imgData.width;
+			sCanvas.height = imgData.height;
+			sCanvas.getContext("2d").drawImage(canvas, 0, 0);
+			cw          = imgData.width;
+			ch          = imgData.height;
+
+		};
+	/*
+		Trace
+	var w           = ctx.canvas.width,
+		h           = ctx.canvas.height,
+		cx          = (options.x || 0)|0,
+		cy          = (options.y || 0)|0,
+		cw          = (options.width || w)|0,
+		ch          = (options.height || h)|0,
+		bu, paths   = [], path,
+		lastPos = 3, i, pt, // for recursive calls
+		bleed       = Math.max(1, options.bleed || 5),
+		max         = Math.max(1, options.maxShapes || 1),
+		alpha       = Math.max(0, Math.min(254, options.alpha || 0)),
+		padding 	= options.padding || 0,
+		tolerance   = Math.max(0, options.tolerance || 0),
+		doAlign     = !!options.align,
+		alignWeight = options.alignWeight || 0.95,
+		retPath     = !!options.path2D,
+		ctx2, inc;
+	 */
+	function trace(imgData, options) {
+		options = options || {};
+		var path = [],
+			data = new Uint32Array(imgData.data.buffer),
+			l,
+			i, x, y, sx, sy,
+			start = -1,
+			step, pStep = 9,
+			steps = [9, 0, 3, 3, 2, 0, 9, 3, 1, 9, 1, 1, 2, 0, 2, 9];
+
+		// data = new Uint32Array(ctx.getImageData(cx, cy, cw, ch).data.buffer);
+		l = data.length;
+
+		// start position
+		for(i = lastPos; i < l; i++) {
+			if ((data[i]>>>24) > alpha) {
+				start = lastPos = i;
+				break
+			}
+		}
+
+		// march from start point until start point
+		if (start >= 0) {
+
+			// calculate start position
+			x = sx = (start % cw) | 0;
+			y = sy = (start / cw) | 0;
+
+			do {
+				step = getNextStep(x, y);
+
+				if (step === 0) y--;
+				else if (step === 1) y++;
+				else if (step === 2) x--;
+				else if (step === 3) x++;
+
+				if (step !== pStep) {
+					path.push({x: x + cx, y: y + cy});
+					pStep = step;
+				}
+			}
+			while(x !== sx || y !== sy);
+
+			// point reduction?
+			if (tolerance)
+				path = reduce(path, tolerance);
+
+			// align? (only if no padding)
+			if (doAlign && !padding)
+				path = align(path, alignWeight);
+		}
+
+		// lookup pixel
+		function getState(x, y) {
+			return (x >= 0 && y >= 0 && x < cw && y < ch) ? (data[y * cw + x]>>>24) > alpha : false
+		}
+
+		// Parse 2x2 pixels to determine next step direction.
+		// See https://en.wikipedia.org/wiki/Marching_squares for details.
+		// Note: does not do clockwise cycle as in the original specs, but line by line.
+		function getNextStep(x, y) {
+
+			var v = 0;
+			if (getState(x - 1, y - 1)) v |= 1;
+			if (getState(x, y - 1)) v |= 2;
+			if (getState(x - 1, y)) v |= 4;
+			if (getState(x, y)) v |= 8;
+
+			if (v === 6)
+				return pStep === 0 ? 2 : 3;
+			else if (v === 9)
+				return pStep === 3 ? 0 : 1;
+			else
+				return steps[v];
+		}
+
+		// Ramer Douglas Peucker with correct distance point-to-line
+		function reduce(points, epsilon) {
+
+			var len1 = points.length - 1;
+			if (len1 < 2) return points;
+
+			var fPoint = points[0],
+				lPoint = points[len1],
+				epsilon2 = epsilon * epsilon,
+				i, index = -1,
+				cDist, dist = 0,
+				l1, l2, r1, r2;
+
+			for (i = 1; i < len1; i++) {
+				cDist = distPointToLine(points[i], fPoint, lPoint);
+				if (cDist > dist) {
+					dist = cDist;
+					index = i
+				}
+			}
+
+			if (dist > epsilon2) {
+				l1 = points.slice(0, index + 1);
+				l2 = points.slice(index);
+				r1 = reduce(l1, epsilon);
+				r2 = reduce(l2, epsilon);
+				return r1.slice(0, r1.length - 1).concat(r2)
+			}
+			else
+				return [fPoint, lPoint]
+		}
+
+		function distPointToLine(p, l1, l2) {
+
+			var lLen = dist(l1, l2), t;
+
+			if (!lLen)
+				return 0;
+
+			t = ((p.x - l1.x) * (l2.x - l1.x) + (p.y - l1.y) * (l2.y - l1.y)) / lLen;
+
+			if (t < 0)
+				return dist(p, l1);
+			else if (t > 1)
+				return dist(p, l2);
+			else
+				return dist(p, { x: l1.x + t * (l2.x - l1.x), y: l1.y + t * (l2.y - l1.y)});
+		}
+
+		function dist(p1, p2) {
+			var dx = p1.x - p2.x,
+				dy = p1.y - p2.y;
+			return dx * dx + dy * dy
+		}
+
+		// Align by K3N
+		function align(points, w) {
+
+			var ox = [1, -1, -1, 1],
+				oy = [1, 1, -1, -1],
+				p, t = 0;
+
+			while(p = points[t++]) {
+
+				p.x = Math.round(p.x);
+				p.y = Math.round(p.y);
+
+				for(var i = 0, tx, ty, dx, dy; i < 4; i++) {
+					dx = ox[i];
+					dy = oy[i];
+					tx = p.x + (dx<<1);
+					ty = p.y + (dy<<1);
+					if (tx > cx && ty > cy && tx < cw - 1 && ty < ch - 1) {
+						if (!getState(tx, ty)) {
+							tx -= dx;
+							ty -= dy;
+							if (getState(tx, ty)) {
+								p.x += dx * w;
+								p.y += dy * w;
+							}
+						}
+					}
+				}
+			}
+
+			return points
+		}
+
+		return path
+	}
+	function points2path(points) {
+
+		var path = new Path2D(),
+			i = 0, point;
+
+		while(point = points[i++])
+			path.lineTo(point.x, point.y);
+
+		path.closePath();
+		return path
+	}
+	function path2canvas(paths) {
+
+		var ctx1 = rCanvas.getContext("2d");
+
+		ctx1.fillStyle = ctx1.strokeStyle = "red";
+		ctx1.globalAlpha = 1;
+		ctx1.shadowColor = "rgba(0,0,0,0)";
+
+		// ctx1.globalCompositeOperation = "destination-out";
+		ctx1.lineWidth = 5;
+		ctx1.miterLimit = 1;
+
+		paths.forEach(function(path) {
+			ctx1.stroke(points2path(path));
+		});
+		return paths;
+	}
+
+    function runMe() {
+		var res = [],
+			paths = [],
+			ctx1 = ctx,
+			delta = 40,
+			shiftX = 0,
+			max = 256;
+		// loop to find each shape
+
+		// force reset so we won't get surprises
+		// ctx.save(); 
+		
+		ctx1.setTransform(1,0,0,1,0,0);
+		ctx1.fillStyle = ctx1.strokeStyle = "red";
+		ctx1.globalAlpha = 1;
+		ctx1.shadowColor = "rgba(0,0,0,0)";
+
+		ctx1.globalCompositeOperation = "destination-out";
+		ctx1.lineWidth = 5;
+		ctx1.miterLimit = 1;
+
+		do {
+			var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+			path = trace(imgData);
+			if (path.length) {
+
+				// add to list
+				res.push(path);
+				// ctx1.stroke(points2path(path));
+
+				// remove traced shape
+				ctx1.beginPath();
+				var i = path.length - 1;
+				while(pt = path[i--]) {
+					ctx1.lineTo(pt.x, pt.y);
+				}
+				ctx1.closePath();
+				ctx1.fill();
+				ctx1.stroke();
+				// shiftX += delta;
+			}
+		}
+		while(path.length && --max);
+		// restore bitmap to original
+		ctx.globalCompositeOperation = "source-over";
+		ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+		ctx.drawImage(sCanvas, 0, 0);
+		ctx.restore();
+		path2canvas(res);
+		console.log('result', res);
+    }
+
+    </script>
+
+    </body>
+</html>
