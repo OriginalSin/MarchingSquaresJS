@@ -43,7 +43,13 @@
         canvas.height = 300;
 
         var img1 = document.getElementById("img1");
-			context.drawImage(img1, 220, 490, 300, 300, 0, 0, 300, 300);
+		context.drawImage(img1, 220, 490, 300, 300, 0, 0, 300, 300);
+		
+		canvasContainer.onclick = function(ev) {
+			document.getElementById("px").value = ev.clientX;
+			document.getElementById("py").value = ev.clientY;
+		}
+
 /*
         //FILL CANVAS WITH A BLOB MADE OF RANDOM LETTERS
         var weights = ["normal", "bold", "bolder", "lighter"];
@@ -70,9 +76,16 @@
 		*/
     }
 
+    function getFirstPoint() {
+        return {
+			x: Number(document.getElementById("px").value),
+			y: Number(document.getElementById("py").value)
+		};
+    }
+
     function runMarchingSquaresOld(){
         var start = new Date();
-        outlinePoints = MarchingSquaresOld.getBlobOutlinePoints(canvas);  // returns [x1,y1,x2,y2,x3,y3... etc.]
+        outlinePoints = MarchingSquaresOld.getBlobOutlinePoints(canvas, getFirstPoint());  // returns [x1,y1,x2,y2,x3,y3... etc.]
         var result = document.getElementById("result");
         result.innerHTML = "March (Old) took : "+ (new Date() - start);
         renderOutline();
@@ -201,6 +214,16 @@
             </span>
             <p>
                 <button type="button" onclick="runMarchingSquaresBenchmarks()">Run Marching Squares Benchmarks</button>
+            </p>
+            <p>
+				<span>
+					x: <input id="px" value="0" />
+				</span>
+            </p>
+            <p>
+				<span>
+					y: <input id="py" value="0" />
+				</span>
             </p>
             <p id="result"></p>
         </div>
